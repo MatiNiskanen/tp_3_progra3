@@ -1,12 +1,8 @@
 package controlador;
 
-
-
 import java.util.List;
 import java.util.Map;
-
 import javax.swing.SwingWorker;
-
 import interfazVisual.VentanaPrincipal;
 import negocio.Persona;
 import negocio.SolverEquipo;
@@ -21,27 +17,26 @@ public class EquipoControlador {
     public void resolverEquipo(List<Persona> personas, Map<String, Integer> requerimientos, List<String[]> incompatibilidades) {
         vista.actualizarEstado("Calculando con SwingWorker...", false);
 
-        // Definimos el SwingWorker: <Tipo de Resultado Final, Tipo de Datos Intermedios>
         SwingWorker<List<Persona>, Void> trabajador = new SwingWorker<>() {
             
-            // 1. Esto corre en el hilo secundario (Segundo Plano)
             @Override
             protected List<Persona> doInBackground() throws Exception {
                 SolverEquipo solucionador = new SolverEquipo(personas, requerimientos);
                 
                 for (String[] par : incompatibilidades) {
-                    // ... (registro de incompatibilidades igual que antes) ...
+                    Persona p1 = buscarPersonaPorNombre(personas, par[0]);
+                    Persona p2 = buscarPersonaPorNombre(personas, par[1]);
+                    if (p1 != null && p2 != null) {
+                        solucionador.registrarIncompatibilidad(p1, p2);
+                    }
                 }
                 
-                // Ejecuta el backtracking pesado
                 return solucionador.resolver();
             }
 
-            // 2. Esto corre automáticamente en el hilo de la UI al terminar (UI Thread)
             @Override
             protected void done() {
                 try {
-                    // .get() recupera lo que devolvió doInBackground()
                     List<Persona> resultado = get(); 
                     
                     if (resultado == null || resultado.isEmpty()) {
@@ -57,7 +52,15 @@ public class EquipoControlador {
             }
         };
 
-        // Al igual que con un Thread común, se le da arranque
         trabajador.execute();
+    }
+
+    private Persona buscarPersonaPorNombre(List<Persona> personas, String nombre) {
+        for (Persona p : personas) {
+            if (p.getNombre().equals(nombre)) {
+                return p;
+            }
+        }
+        return null;
     }
 }
