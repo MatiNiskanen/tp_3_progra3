@@ -4,22 +4,28 @@ import javax.swing.*;
 import controlador.EquipoControlador;
 import negocio.Persona;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.Map;
 
 public class VentanaPrincipal extends JFrame {
     private EquipoControlador controlador;
     
-    private List<Persona> listaPersonas;
-    private Map<String, Integer> requerimientos;
-    private List<String[]> listaIncompatibilidades;
-
+    private DefaultListModel<String> modeloVisualRequerimientos;
     private DefaultListModel<String> modeloVisualPersonas;
     private DefaultListModel<String> modeloVisualIncompatibilidades;
+    
+    private JList<String> listaUI_Personas;
+    private JList<String> listaUI_Incomp;
+    
     private JComboBox<String> comboIncomp1;
     private JComboBox<String> comboIncomp2;
+
+    private JSpinner spinLider;
+    private JSpinner spinArq;
+    private JSpinner spinProg;
+    private JSpinner spinTest;
 
     private JTextArea txtResultado;
     private JButton btnResolver;
@@ -27,19 +33,10 @@ public class VentanaPrincipal extends JFrame {
 
     public VentanaPrincipal() {
         super("Simulador de Selección de Personal - Backtracking");
-        this.controlador = new EquipoControlador(this);
-        
-        this.listaPersonas = new ArrayList<>();
-        this.requerimientos = new HashMap<>();
-        this.listaIncompatibilidades = new ArrayList<>();
-        
-        requerimientos.put("Líder de proyecto", 0);
-        requerimientos.put("Arquitecto", 0);
-        requerimientos.put("Programador", 0);
-        requerimientos.put("Tester", 0);
-
         configurarVentana();
         inicializarComponentes();
+        
+        this.controlador = new EquipoControlador(this); 
     }
 
     private void configurarVentana() {
@@ -63,20 +60,26 @@ public class VentanaPrincipal extends JFrame {
         panelFormularios.add(Box.createVerticalGlue());
 
         JButton btnCargarDemo = new JButton("Cargar Datos de Prueba (Demo)");
-        btnCargarDemo.addActionListener(e -> cargarEscenarioPorDefecto());
+        btnCargarDemo.addActionListener(e -> controlador.cargarDemo());
         panelFormularios.add(btnCargarDemo);
 
         add(panelFormularios, BorderLayout.WEST);
 
-        JPanel panelListas = new JPanel(new GridLayout(2, 1, 5, 5));
-        panelListas.setBorder(BorderFactory.createTitledBorder("Datos Ingresados en el Sistema"));
+        JPanel panelListas = new JPanel(new GridLayout(3, 1, 5, 5));
+        panelListas.setBorder(BorderFactory.createTitledBorder("Datos Ingresados (Clic derecho para opciones)"));
         
+        modeloVisualRequerimientos = new DefaultListModel<>();
+        JList<String> listaUI_Req = new JList<>(modeloVisualRequerimientos);
+        panelListas.add(new JScrollPane(listaUI_Req));
+
         modeloVisualPersonas = new DefaultListModel<>();
-        JList<String> listaUI_Personas = new JList<>(modeloVisualPersonas);
+        listaUI_Personas = new JList<>(modeloVisualPersonas);
+        configurarMenuContextualPersonas(); 
         panelListas.add(new JScrollPane(listaUI_Personas));
 
         modeloVisualIncompatibilidades = new DefaultListModel<>();
-        JList<String> listaUI_Incomp = new JList<>(modeloVisualIncompatibilidades);
+        listaUI_Incomp = new JList<>(modeloVisualIncompatibilidades);
+        configurarMenuContextualIncompatibilidades(); 
         panelListas.add(new JScrollPane(listaUI_Incomp));
 
         add(panelListas, BorderLayout.CENTER);
@@ -88,12 +91,14 @@ public class VentanaPrincipal extends JFrame {
         txtResultado = new JTextArea();
         txtResultado.setEditable(false);
         txtResultado.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        txtResultado.setLineWrap(true);
+        txtResultado.setWrapStyleWord(true);
         panelResultados.add(new JScrollPane(txtResultado), BorderLayout.CENTER);
 
         JPanel panelAccion = new JPanel(new BorderLayout());
         btnResolver = new JButton("Calcular Equipo Ideal");
         btnResolver.setFont(new Font("Arial", Font.BOLD, 14));
-        btnResolver.addActionListener(e -> controlador.resolverEquipo(listaPersonas, requerimientos, listaIncompatibilidades));
+        btnResolver.addActionListener(e -> controlador.resolverEquipo());
         
         lblEstado = new JLabel("Estado: Esperando datos...");
         panelAccion.add(btnResolver, BorderLayout.CENTER);
@@ -101,6 +106,80 @@ public class VentanaPrincipal extends JFrame {
         
         panelResultados.add(panelAccion, BorderLayout.SOUTH);
         add(panelResultados, BorderLayout.EAST);
+    }
+
+    private void configurarMenuContextualPersonas() {
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem itemModificar = new JMenuItem("Modificar Rol/Calificación");
+        JMenuItem itemEliminar = new JMenuItem("Eliminar Persona");
+        
+        popup.add(itemModificar);
+        popup.addSeparator();
+        popup.add(itemEliminar);
+
+        itemEliminar.addActionListener(e -> {
+            int index = listaUI_Personas.getSelectedIndex();
+            if (index != -1) {
+                controlador.eliminarPersona(index);
+            }
+        });
+
+        itemModificar.addActionListener(e -> {
+            int index = listaUI_Personas.getSelectedIndex();
+            if (index != -1) {
+                String[] roles = {"Líder de proyecto", "Arquitecto", "Programador", "Tester"};
+                JComboBox<String> comboRol = new JComboBox<>(roles);
+                
+                String[] notas = {"1", "2", "3", "4", "5"};
+                JComboBox<String> comboNota = new JComboBox<>(notas);
+                
+                JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
+                panel.add(new JLabel("Nuevo Rol:")); panel.add(comboRol);
+                panel.add(new JLabel("Nueva Calificación:")); panel.add(comboNota);
+                
+                int result = JOptionPane.showConfirmDialog(this, panel, "Modificar Empleado", JOptionPane.OK_CANCEL_OPTION);
+                if (result == JOptionPane.OK_OPTION) {
+                    controlador.modificarPersona(index, (String)comboRol.getSelectedItem(), Integer.parseInt((String)comboNota.getSelectedItem()));
+                }
+            }
+        });
+
+        listaUI_Personas.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    int row = listaUI_Personas.locationToIndex(e.getPoint());
+                    if (row != -1) {
+                        listaUI_Personas.setSelectedIndex(row);
+                        popup.show(listaUI_Personas, e.getX(), e.getY());
+                    }
+                }
+            }
+        });
+    }
+
+    private void configurarMenuContextualIncompatibilidades() {
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem itemEliminar = new JMenuItem("Eliminar Incompatibilidad");
+        popup.add(itemEliminar);
+
+        itemEliminar.addActionListener(e -> {
+            int index = listaUI_Incomp.getSelectedIndex();
+            if (index != -1) {
+                controlador.eliminarIncompatibilidad(index);
+            }
+        });
+
+        listaUI_Incomp.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    int row = listaUI_Incomp.locationToIndex(e.getPoint());
+                    if (row != -1) {
+                        listaUI_Incomp.setSelectedIndex(row);
+                        popup.show(listaUI_Incomp, e.getX(), e.getY());
+                    }
+                }
+            }
+        });
     }
 
     private JPanel crearPanelCargaPersona() {
@@ -124,17 +203,8 @@ public class VentanaPrincipal extends JFrame {
             if (!nombre.isEmpty()) {
                 String rol = (String) comboRol.getSelectedItem();
                 int nota = Integer.parseInt((String) comboNota.getSelectedItem());
-                
-                Persona nueva = new Persona(nombre, rol, nota);
-                if (!listaPersonas.contains(nueva)) {
-                    listaPersonas.add(nueva);
-                    modeloVisualPersonas.addElement(nombre + " (" + rol + " - " + nota + " pts)");
-                    comboIncomp1.addItem(nombre);
-                    comboIncomp2.addItem(nombre);
-                    txtNombre.setText("");
-                } else {
-                    JOptionPane.showMessageDialog(VentanaPrincipal.this, "La persona ya existe.");
-                }
+                controlador.agregarPersona(nombre, rol, nota);
+                txtNombre.setText("");
             }
         });
 
@@ -145,10 +215,10 @@ public class VentanaPrincipal extends JFrame {
         JPanel panel = new JPanel(new GridLayout(5, 2, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("2. Requerimientos del Equipo"));
 
-        JSpinner spinLider = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
-        JSpinner spinArq = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
-        JSpinner spinProg = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
-        JSpinner spinTest = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
+        spinLider = new JSpinner(new SpinnerNumberModel(0, 0, 999, 1));
+        spinArq = new JSpinner(new SpinnerNumberModel(0, 0, 999, 1));
+        spinProg = new JSpinner(new SpinnerNumberModel(0, 0, 999, 1));
+        spinTest = new JSpinner(new SpinnerNumberModel(0, 0, 999, 1));
         JButton btnFijarReq = new JButton("Fijar Cupos");
 
         panel.add(new JLabel("Líder de proyecto:")); panel.add(spinLider);
@@ -158,16 +228,17 @@ public class VentanaPrincipal extends JFrame {
         panel.add(new JLabel("")); panel.add(btnFijarReq);
 
         btnFijarReq.addActionListener(e -> {
-            requerimientos.put("Líder de proyecto", (Integer) spinLider.getValue());
-            requerimientos.put("Arquitecto", (Integer) spinArq.getValue());
-            requerimientos.put("Programador", (Integer) spinProg.getValue());
-            requerimientos.put("Tester", (Integer) spinTest.getValue());
-            JOptionPane.showMessageDialog(VentanaPrincipal.this, "Requerimientos guardados exitosamente.");
+            controlador.fijarRequerimientos(
+                (Integer) spinLider.getValue(),
+                (Integer) spinArq.getValue(),
+                (Integer) spinProg.getValue(),
+                (Integer) spinTest.getValue()
+            );
         });
 
         return panel;
     }
-
+    
     private JPanel crearPanelIncompatibilidades() {
         JPanel panel = new JPanel(new GridLayout(3, 2, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("3. Registrar Incompatibilidad"));
@@ -183,58 +254,43 @@ public class VentanaPrincipal extends JFrame {
         btnRegistrarInc.addActionListener(e -> {
             String p1 = (String) comboIncomp1.getSelectedItem();
             String p2 = (String) comboIncomp2.getSelectedItem();
-            
-            if (p1 != null && p2 != null && !p1.equals(p2)) {
-                listaIncompatibilidades.add(new String[]{p1, p2});
-                modeloVisualIncompatibilidades.addElement("Choque: " + p1 + " <-> " + p2);
-            } else {
-                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Selección inválida.");
-            }
+            controlador.registrarIncompatibilidad(p1, p2);
         });
 
         return panel;
     }
 
-    private void cargarEscenarioPorDefecto() {
-        listaPersonas.clear();
+    public void actualizarListasVisuales(List<Persona> personas, Map<String, Integer> reqs, List<String[]> incomp) {
         modeloVisualPersonas.clear();
-        listaIncompatibilidades.clear();
-        modeloVisualIncompatibilidades.clear();
         comboIncomp1.removeAllItems();
         comboIncomp2.removeAllItems();
+        for (Persona p : personas) {
+            modeloVisualPersonas.addElement(p.getNombre() + " (" + p.getRol() + " - " + p.getCalificacion() + " pts)");
+            comboIncomp1.addItem(p.getNombre());
+            comboIncomp2.addItem(p.getNombre());
+        }
 
-        agregarPersonaDesdeDemo("Ana", "Líder de proyecto", 5);
-        agregarPersonaDesdeDemo("Pedro", "Líder de proyecto", 4);
-        agregarPersonaDesdeDemo("Carlos", "Arquitecto", 4);
-        agregarPersonaDesdeDemo("Beatriz", "Arquitecto", 5);
-        agregarPersonaDesdeDemo("Juan", "Programador", 3);
-        agregarPersonaDesdeDemo("María", "Programador", 5);
-        agregarPersonaDesdeDemo("Luis", "Programador", 4);
-        agregarPersonaDesdeDemo("Sofía", "Tester", 4);
-        agregarPersonaDesdeDemo("Diego", "Tester", 2);
+        modeloVisualRequerimientos.clear();
+        modeloVisualRequerimientos.addElement("Cupos - Líderes: " + reqs.get("Líder de proyecto"));
+        modeloVisualRequerimientos.addElement("Cupos - Arquitectos: " + reqs.get("Arquitecto"));
+        modeloVisualRequerimientos.addElement("Cupos - Programadores: " + reqs.get("Programador"));
+        modeloVisualRequerimientos.addElement("Cupos - Testers: " + reqs.get("Tester"));
 
-        requerimientos.put("Líder de proyecto", 1);
-        requerimientos.put("Arquitecto", 1);
-        requerimientos.put("Programador", 2);
-        requerimientos.put("Tester", 1);
-
-        registrarIncompatibilidadDemo("Ana", "María");
-        registrarIncompatibilidadDemo("Carlos", "Juan");
-        
-        JOptionPane.showMessageDialog(this, "Datos de prueba cargados. Requerimientos fijados internamente.");
+        modeloVisualIncompatibilidades.clear();
+        for (String[] par : incomp) {
+            modeloVisualIncompatibilidades.addElement("Choque: " + par[0] + " <-> " + par[1]);
+        }
     }
 
-    private void agregarPersonaDesdeDemo(String nombre, String rol, int calificacion) {
-        Persona p = new Persona(nombre, rol, calificacion);
-        listaPersonas.add(p);
-        modeloVisualPersonas.addElement(nombre + " (" + rol + " - " + calificacion + " pts)");
-        comboIncomp1.addItem(nombre);
-        comboIncomp2.addItem(nombre);
+    public void setValoresSpinners(Map<String, Integer> reqs) {
+        spinLider.setValue(reqs.get("Líder de proyecto"));
+        spinArq.setValue(reqs.get("Arquitecto"));
+        spinProg.setValue(reqs.get("Programador"));
+        spinTest.setValue(reqs.get("Tester"));
     }
-    
-    private void registrarIncompatibilidadDemo(String p1, String p2) {
-        listaIncompatibilidades.add(new String[]{p1, p2});
-        modeloVisualIncompatibilidades.addElement("Choque: " + p1 + " <-> " + p2);
+
+    public void mostrarMensaje(String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje);
     }
 
     public void actualizarEstado(String mensaje, boolean activarBoton) {
@@ -244,10 +300,10 @@ public class VentanaPrincipal extends JFrame {
 
     public void mostrarResultado(List<Persona> equipo, String mensajeFinal) {
         StringBuilder sb = new StringBuilder();
-        sb.append(mensajeFinal).append("\n");
-        sb.append("=========================================\n");
+        sb.append(mensajeFinal).append("\n\n");
         
         if (equipo != null && !equipo.isEmpty()) {
+            sb.append("=========================================\n");
             int calificacionTotal = 0;
             for (Persona p : equipo) {
                 sb.append(String.format("- %-10s | %-15s | %d pts\n", 
