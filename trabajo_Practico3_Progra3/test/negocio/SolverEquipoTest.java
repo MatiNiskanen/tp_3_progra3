@@ -31,7 +31,8 @@ public class SolverEquipoTest {
         SolverEquipo solver = new SolverEquipo(personasPrueba, reqPrueba);
         solver.registrarIncompatibilidad(p1, p2);
         
-        List<Persona> resultado = solver.resolver();
+        ResultadoSolver res = solver.resolver();
+        List<Persona> resultado = res.getEquipoIdeal();
         
         assertTrue("El equipo debería estar vacío porque los únicos dos candidatos se odian", resultado.isEmpty());
     }
@@ -49,7 +50,8 @@ public class SolverEquipoTest {
         reqPrueba.put("Arquitecto", 1);
         
         SolverEquipo solver = new SolverEquipo(personasPrueba, reqPrueba);
-        List<Persona> resultado = solver.resolver();
+        ResultadoSolver res = solver.resolver();
+        List<Persona> resultado = res.getEquipoIdeal();
         
         assertEquals("Debe haber exactamente 1 persona en el equipo para no exceder el cupo", 1, resultado.size());
         assertEquals("El algoritmo debe seleccionar al Arquitecto de mayor puntaje", "Arq Excelente", resultado.get(0).getNombre());
@@ -64,14 +66,10 @@ public class SolverEquipoTest {
         reqPrueba.put("Tester", 2);
         
         SolverEquipo solver = new SolverEquipo(personasPrueba, reqPrueba);
-        List<Persona> resultado = solver.resolver();
-        
-        int calificacionTotal = 0;
-        for(Persona p : resultado) {
-            calificacionTotal += p.getCalificacion();
-        }
+        ResultadoSolver res = solver.resolver();
+        List<Persona> resultado = res.getEquipoIdeal();
         
         assertEquals("El equipo óptimo debe tener 2 miembros", 2, resultado.size());
-        assertEquals("La suma óptima de calificaciones debe ser 9", 9, calificacionTotal);
+        assertEquals("La suma óptima de calificaciones debe ser 9", 9, res.getPuntajeTotal());
     }
 }

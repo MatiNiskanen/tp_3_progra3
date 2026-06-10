@@ -3,6 +3,7 @@ package interfazVisual;
 import javax.swing.*;
 import controlador.EquipoControlador;
 import negocio.Persona;
+import negocio.ResultadoSolver;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -27,20 +28,19 @@ public class VentanaPrincipal extends JFrame {
     private JSpinner spinProg;
     private JSpinner spinTest;
 
-    private JTextArea txtResultado;
+    private JTabbedPane panelTabsResultados; 
     private JButton btnResolver;
     private JLabel lblEstado;
 
     public VentanaPrincipal() {
-        super("Simulador de Selección de Personal - Backtracking");
+        super("El equipo ideal");
         configurarVentana();
         inicializarComponentes();
-        
         this.controlador = new EquipoControlador(this); 
     }
 
     private void configurarVentana() {
-        setSize(950, 650);
+        setSize(1000, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
@@ -85,20 +85,16 @@ public class VentanaPrincipal extends JFrame {
         add(panelListas, BorderLayout.CENTER);
 
         JPanel panelResultados = new JPanel(new BorderLayout());
-        panelResultados.setBorder(BorderFactory.createTitledBorder("Salida del Algoritmo"));
-        panelResultados.setPreferredSize(new Dimension(350, 0));
+        panelResultados.setBorder(BorderFactory.createTitledBorder("Comparativa de Rendimiento"));
+        panelResultados.setPreferredSize(new Dimension(380, 0));
 
-        txtResultado = new JTextArea();
-        txtResultado.setEditable(false);
-        txtResultado.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        txtResultado.setLineWrap(true);
-        txtResultado.setWrapStyleWord(true);
-        panelResultados.add(new JScrollPane(txtResultado), BorderLayout.CENTER);
+        panelTabsResultados = new JTabbedPane();
+        panelResultados.add(panelTabsResultados, BorderLayout.CENTER);
 
         JPanel panelAccion = new JPanel(new BorderLayout());
-        btnResolver = new JButton("Calcular Equipo Ideal");
+        btnResolver = new JButton("Calcular y Comparar Soluciones");
         btnResolver.setFont(new Font("Arial", Font.BOLD, 14));
-        btnResolver.addActionListener(e -> controlador.resolverEquipo());
+        btnResolver.addActionListener(e -> controlador.resolverComparativa());
         
         lblEstado = new JLabel("Estado: Esperando datos...");
         panelAccion.add(btnResolver, BorderLayout.CENTER);
@@ -119,9 +115,7 @@ public class VentanaPrincipal extends JFrame {
 
         itemEliminar.addActionListener(e -> {
             int index = listaUI_Personas.getSelectedIndex();
-            if (index != -1) {
-                controlador.eliminarPersona(index);
-            }
+            if (index != -1) controlador.eliminarPersona(index);
         });
 
         itemModificar.addActionListener(e -> {
@@ -129,7 +123,6 @@ public class VentanaPrincipal extends JFrame {
             if (index != -1) {
                 String[] roles = {"Líder de proyecto", "Arquitecto", "Programador", "Tester"};
                 JComboBox<String> comboRol = new JComboBox<>(roles);
-                
                 String[] notas = {"1", "2", "3", "4", "5"};
                 JComboBox<String> comboNota = new JComboBox<>(notas);
                 
@@ -145,6 +138,7 @@ public class VentanaPrincipal extends JFrame {
         });
 
         listaUI_Personas.addMouseListener(new MouseAdapter() {
+            @Override
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = listaUI_Personas.locationToIndex(e.getPoint());
@@ -164,15 +158,15 @@ public class VentanaPrincipal extends JFrame {
 
         itemEliminar.addActionListener(e -> {
             int index = listaUI_Incomp.getSelectedIndex();
-            if (index != -1) {
-                controlador.eliminarIncompatibilidad(index);
-            }
+            if (index != -1) controlador.eliminarIncompatibilidad(index);
         });
 
         listaUI_Incomp.addMouseListener(new MouseAdapter() {
+            @Override
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = listaUI_Incomp.locationToIndex(e.getPoint());
+                    
                     if (row != -1) {
                         listaUI_Incomp.setSelectedIndex(row);
                         popup.show(listaUI_Incomp, e.getX(), e.getY());
@@ -252,9 +246,7 @@ public class VentanaPrincipal extends JFrame {
         panel.add(new JLabel("")); panel.add(btnRegistrarInc);
 
         btnRegistrarInc.addActionListener(e -> {
-            String p1 = (String) comboIncomp1.getSelectedItem();
-            String p2 = (String) comboIncomp2.getSelectedItem();
-            controlador.registrarIncompatibilidad(p1, p2);
+            controlador.registrarIncompatibilidad((String)comboIncomp1.getSelectedItem(), (String)comboIncomp2.getSelectedItem());
         });
 
         return panel;
@@ -271,10 +263,12 @@ public class VentanaPrincipal extends JFrame {
         }
 
         modeloVisualRequerimientos.clear();
-        modeloVisualRequerimientos.addElement("Cupos - Líderes: " + reqs.get("Líder de proyecto"));
-        modeloVisualRequerimientos.addElement("Cupos - Arquitectos: " + reqs.get("Arquitecto"));
-        modeloVisualRequerimientos.addElement("Cupos - Programadores: " + reqs.get("Programador"));
-        modeloVisualRequerimientos.addElement("Cupos - Testers: " + reqs.get("Tester"));
+        if(reqs.containsKey("Líder de proyecto")) {
+            modeloVisualRequerimientos.addElement("Cupos - Líderes: " + reqs.get("Líder de proyecto"));
+            modeloVisualRequerimientos.addElement("Cupos - Arquitectos: " + reqs.get("Arquitecto"));
+            modeloVisualRequerimientos.addElement("Cupos - Programadores: " + reqs.get("Programador"));
+            modeloVisualRequerimientos.addElement("Cupos - Testers: " + reqs.get("Tester"));
+        }
 
         modeloVisualIncompatibilidades.clear();
         for (String[] par : incomp) {
@@ -298,21 +292,46 @@ public class VentanaPrincipal extends JFrame {
         btnResolver.setEnabled(activarBoton);
     }
 
-    public void mostrarResultado(List<Persona> equipo, String mensajeFinal) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(mensajeFinal).append("\n\n");
-        
-        if (equipo != null && !equipo.isEmpty()) {
-            sb.append("=========================================\n");
-            int calificacionTotal = 0;
-            for (Persona p : equipo) {
-                sb.append(String.format("- %-10s | %-15s | %d pts\n", 
-                        p.getNombre(), p.getRol(), p.getCalificacion()));
-                calificacionTotal += p.getCalificacion();
+    public void mostrarResultadosComparativos(List<ResultadoSolver> comparativa, int totalPersonasSistema) {
+        panelTabsResultados.removeAll();
+
+        for (ResultadoSolver res : comparativa) {
+            JTextArea txtResultadoTab = new JTextArea();
+            txtResultadoTab.setEditable(false);
+            txtResultadoTab.setFont(new Font("Monospaced", Font.PLAIN, 13));
+            txtResultadoTab.setLineWrap(true);
+            txtResultadoTab.setWrapStyleWord(true);
+            txtResultadoTab.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+            StringBuilder sb = new StringBuilder();
+            boolean esBacktracking = res.getNombreAlgoritmo().contains("Backtracking");
+
+            sb.append("Enfoque: ").append(esBacktracking ? "Algoritmo Exacto (Backtracking)\n" : "Algoritmo Heurístico (Goloso)\n");
+            
+            if (res.getEquipoIdeal() == null || res.getEquipoIdeal().isEmpty()) {
+                sb.append("\nNo se encontró una solución factible.\n");
+            } else {
+                sb.append("Puntos: ").append(res.getPuntajeTotal()).append("\n");
+                
+                if (esBacktracking) {
+                    sb.append("Complejidad teórica: O(2^N)\n");
+                } else {
+                    sb.append("Complejidad teórica: O(N log N)\n");
+                }
+                
+                sb.append(" Tiempo de ejecución: ").append(String.format("%.4f", res.getTiempoEjecucionMs())).append(" ms\n\n");
+                
+                sb.append("Integrantes seleccionados\n");
+                for (Persona p : res.getEquipoIdeal()) {
+                    sb.append("  ").append(p.getNombre())
+                      .append(" | ").append(p.getRol())
+                      .append(" | ").append(p.getCalificacion())
+                      .append(" pts\n");
+                }
             }
-            sb.append("=========================================\n");
-            sb.append("Puntaje Histórico Total: ").append(calificacionTotal).append("\n");
+
+            txtResultadoTab.setText(sb.toString());
+            panelTabsResultados.addTab(res.getNombreAlgoritmo().split(" ")[0], new JScrollPane(txtResultadoTab));
         }
-        txtResultado.setText(sb.toString());
     }
 }

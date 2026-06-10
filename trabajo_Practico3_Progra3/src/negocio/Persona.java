@@ -4,8 +4,8 @@ import java.util.Objects;
 
 public class Persona {
     private String nombre;
-    private String rol; // "Líder de proyecto", "Arquitecto", "Programador", "Tester"
-    private int calificacion; // Entre 1 y 5
+    private String rol; 
+    private int calificacion; 
 
     public Persona(String nombre, String rol, int calificacion) {
         this.nombre = nombre;
@@ -13,7 +13,6 @@ public class Persona {
         this.calificacion = calificacion;
     }
 
-    // Getters
     public String getNombre() { return nombre; }
     public String getRol() { return rol; }
     public int getCalificacion() { return calificacion; }

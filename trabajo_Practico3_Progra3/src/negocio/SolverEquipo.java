@@ -9,8 +9,10 @@ public class SolverEquipo {
 
     private List<Persona> mejorEquipo;
     private int mejorCalificacionTotal;
-    
     private int[] calificacionesRestantes;
+
+    private long contadorCasoBase;
+    private long contadorPodas;
 
     public SolverEquipo(List<Persona> personas, Map<String, Integer> requerimientos) {
         this.personasDisponibles = personas;
@@ -25,9 +27,11 @@ public class SolverEquipo {
         incompatibilidades.add(p2.getNombre() + "-" + p1.getNombre());
     }
 
-    public List<Persona> resolver() {
+    public ResultadoSolver resolver() {
         mejorEquipo = new ArrayList<>();
         mejorCalificacionTotal = -1;
+        contadorCasoBase = 0;
+        contadorPodas = 0;
         
         calificacionesRestantes = new int[personasDisponibles.size() + 1];
         calificacionesRestantes[personasDisponibles.size()] = 0;
@@ -41,17 +45,23 @@ public class SolverEquipo {
             rolesActuales.put(rol, 0);
         }
 
+        long tiempoInicio = System.nanoTime();
         backtracking(0, equipoActual, rolesActuales, 0);
+        long tiempoFin = System.nanoTime();
         
-        return mejorEquipo;
+        double tiempoTotalMs = (tiempoFin - tiempoInicio) / 1_000_000.0;
+
+        return new ResultadoSolver("Exacto (Backtracking)", mejorEquipo, tiempoTotalMs, contadorCasoBase, contadorPodas);
     }
 
     private void backtracking(int indice, List<Persona> equipoActual, Map<String, Integer> rolesActuales, int calificacionActual) {
         if (calificacionActual + calificacionesRestantes[indice] <= mejorCalificacionTotal) {
+            contadorPodas++;
             return;
         }
 
         if (indice == personasDisponibles.size()) {
+            contadorCasoBase++;
             if (cumpleRequerimientos(rolesActuales)) {
                 if (calificacionActual > mejorCalificacionTotal) {
                     mejorCalificacionTotal = calificacionActual;
@@ -71,6 +81,8 @@ public class SolverEquipo {
             
             equipoActual.remove(equipoActual.size() - 1);
             rolesActuales.put(personaEvaluar.getRol(), rolesActuales.get(personaEvaluar.getRol()) - 1);
+        } else {
+            contadorPodas++;
         }
 
         backtracking(indice + 1, equipoActual, rolesActuales, calificacionActual);

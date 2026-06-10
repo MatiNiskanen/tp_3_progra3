@@ -58,7 +58,7 @@ public class GestorEquipo {
         if (p1 != null && p2 != null && !p1.equals(p2)) {
             for (String[] par : listaIncompatibilidades) {
                 if ((par[0].equals(p1) && par[1].equals(p2)) || (par[0].equals(p2) && par[1].equals(p1))) {
-                    return false; // Ya existe
+                    return false; 
                 }
             }
             listaIncompatibilidades.add(new String[]{p1, p2});
@@ -73,7 +73,7 @@ public class GestorEquipo {
         }
     }
 
-    public void cargarEscenarioDemo() {
+    public void cargarEscenarioDemo() { // si puden despues prueben con mas
         listaPersonas.clear();
         listaIncompatibilidades.clear();
 

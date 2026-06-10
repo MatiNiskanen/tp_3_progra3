@@ -1,11 +1,14 @@
 package controlador;
 
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingWorker;
 import interfazVisual.VentanaPrincipal;
 import negocio.GestorEquipo;
 import negocio.Persona;
+import negocio.ResultadoSolver;
 import negocio.SolverEquipo;
+import negocio.SolverHeuristico;
 
 public class EquipoControlador {
     private VentanaPrincipal vista;
@@ -17,11 +20,13 @@ public class EquipoControlador {
         actualizarVista();
     }
 
+    
     public void agregarPersona(String nombre, String rol, int nota) {
         if (gestor.agregarPersona(new Persona(nombre, rol, nota))) {
             actualizarVista();
         } else {
-            vista.mostrarMensaje("La persona ya existe en el sistema.");
+        
+            vista.mostrarMensaje("La persona ya existe en el sisttema.");
         }
     }
 
@@ -33,6 +38,7 @@ public class EquipoControlador {
     public void modificarPersona(int index, String nuevoRol, int nuevaCalificacion) {
         gestor.modificarPersona(index, nuevoRol, nuevaCalificacion);
         actualizarVista();
+        
     }
 
     public void fijarRequerimientos(int lider, int arq, int prog, int test) {
@@ -44,7 +50,9 @@ public class EquipoControlador {
     public void registrarIncompatibilidad(String p1, String p2) {
         if (gestor.registrarIncompatibilidad(p1, p2)) {
             actualizarVista();
-        } else {
+        }
+        
+        else {
             vista.mostrarMensaje("Incompatibilidad inválida o ya registrada.");
         }
     }
@@ -65,36 +73,40 @@ public class EquipoControlador {
         vista.actualizarListasVisuales(gestor.getListaPersonas(), gestor.getRequerimientos(), gestor.getListaIncompatibilidades());
     }
 
-    public void resolverEquipo() {
-        vista.actualizarEstado("Calculando con SwingWorker...", false);
+    public void resolverComparativa() {
+        vista.actualizarEstado("Ejecutando resolvedores en segundo plano...", false);
 
-        SwingWorker<List<Persona>, Void> trabajador = new SwingWorker<>() {
+        SwingWorker<List<ResultadoSolver>, Void> trabajador = new SwingWorker<>() {
             @Override
-            protected List<Persona> doInBackground() throws Exception {
-                SolverEquipo solucionador = new SolverEquipo(gestor.getListaPersonas(), gestor.getRequerimientos());
+            protected List<ResultadoSolver> doInBackground() throws Exception {
+                List<ResultadoSolver> resultados = new ArrayList<>();
                 
+                SolverEquipo solverExacto = new SolverEquipo(gestor.getListaPersonas(), gestor.getRequerimientos());
                 for (String[] par : gestor.getListaIncompatibilidades()) {
                     Persona p1 = buscarPersonaPorNombre(gestor.getListaPersonas(), par[0]);
                     Persona p2 = buscarPersonaPorNombre(gestor.getListaPersonas(), par[1]);
-                    if (p1 != null && p2 != null) {
-                        solucionador.registrarIncompatibilidad(p1, p2);
-                    }
+                    if (p1 != null && p2 != null) solverExacto.registrarIncompatibilidad(p1, p2);
                 }
-                
-                return solucionador.resolver();
+                resultados.add(solverExacto.resolver());
+            
+                SolverHeuristico solverAproximado = new SolverHeuristico(gestor.getListaPersonas(), gestor.getRequerimientos()); // despues lo termino de implementar
+                for (String[] par : gestor.getListaIncompatibilidades()) {
+                    Persona p1 = buscarPersonaPorNombre(gestor.getListaPersonas(), par[0]);
+                    Persona p2 = buscarPersonaPorNombre(gestor.getListaPersonas(), par[1]);
+                    if (p1 != null && p2 != null) solverAproximado.registrarIncompatibilidad(p1, p2);
+                }
+                resultados.add(solverAproximado.resolver());
+
+                return resultados;
             }
 
             @Override
             protected void done() {
                 try {
-                    List<Persona> resultado = get(); 
-                    if (resultado == null || resultado.isEmpty()) {
-                        vista.mostrarResultado(resultado, "No se encontró un equipo que cumpla los requisitos.");
-                    } else {
-                        vista.mostrarResultado(resultado, "¡Equipo calculado exitosamente!");
-                    }
+                    List<ResultadoSolver> comparativa = get();
+                    vista.mostrarResultadosComparativos(comparativa, gestor.getListaPersonas().size());
                 } catch (Exception e) {
-                    vista.mostrarResultado(null, "Ocurrió un error en el cálculo: " + e.getMessage());
+                    vista.mostrarMensaje("Ocurrió un error durante el cálculo: " + e.getMessage());
                 } finally {
                     vista.actualizarEstado("Listo", true);
                 }
