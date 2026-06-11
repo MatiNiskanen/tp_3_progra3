@@ -315,11 +315,13 @@ public class VentanaPrincipal extends JFrame {
                 
                 if (esBacktracking) {
                     sb.append("Complejidad teórica: O(2^N)\n");
+                    sb.append("Caso base ejecutado: ").append(res.getCasoBaseEjecutado()).append(" veces\n");
+                    sb.append("Ramas podadas: ").append(res.getRamasPodadas()).append("\n");
                 } else {
                     sb.append("Complejidad teórica: O(N log N)\n");
                 }
                 
-                sb.append(" Tiempo de ejecución: ").append(String.format("%.4f", res.getTiempoEjecucionMs())).append(" ms\n\n");
+                sb.append("Tiempo de ejecución: ").append(res.getTiempoEjecucionMs()).append(" ms\n\n");
                 
                 sb.append("Integrantes seleccionados\n");
                 for (Persona p : res.getEquipoIdeal()) {
