@@ -72,4 +72,55 @@ public class SolverEquipoTest {
         assertEquals("El equipo óptimo debe tener 2 miembros", 2, resultado.size());
         assertEquals("La suma óptima de calificaciones debe ser 9", 9, res.getPuntajeTotal());
     }
+    
+    @Test
+    public void testRequerimientosImposibles() {
+        personasPrueba.add(new Persona("Solo", "Tester", 5));
+        
+        reqPrueba.put("Tester", 2);
+        
+        SolverEquipo solver = new SolverEquipo(personasPrueba, reqPrueba);
+        ResultadoSolver res = solver.resolver();
+        
+        assertTrue("Si no hay suficiente personal para cubrir el cupo, debe retornar una lista vacía", res.getEquipoIdeal().isEmpty());
+    }
+
+    @Test
+    public void testGrafoCompletoDeIncompatibilidades() {
+        Persona p1 = new Persona("A", "Programador", 5);
+        Persona p2 = new Persona("B", "Programador", 4);
+        Persona p3 = new Persona("C", "Programador", 3);
+        
+        personasPrueba.add(p1);
+        personasPrueba.add(p2);
+        personasPrueba.add(p3);
+        
+        reqPrueba.put("Programador", 2);
+        
+        SolverEquipo solver = new SolverEquipo(personasPrueba, reqPrueba);
+        
+        solver.registrarIncompatibilidad(p1, p2);
+        solver.registrarIncompatibilidad(p2, p3);
+        solver.registrarIncompatibilidad(p1, p3);
+        
+        ResultadoSolver res = solver.resolver();
+        
+        assertTrue("Es imposible formar un equipo de 2 si todos son incompatibles mutuamente", res.getEquipoIdeal().isEmpty());
+    }
+
+    @Test
+    public void testCuposEnCero() {
+        personasPrueba.add(new Persona("A", "Programador", 5));
+        
+        reqPrueba.put("Programador", 0);
+        reqPrueba.put("Tester", 0);
+        reqPrueba.put("Arquitecto", 0);
+        reqPrueba.put("Líder de proyecto", 0);
+        
+        SolverEquipo solver = new SolverEquipo(personasPrueba, reqPrueba);
+        ResultadoSolver res = solver.resolver();
+        
+        assertTrue("Si los cupos son cero, el equipo ideal no debe tener integrantes", res.getEquipoIdeal().isEmpty());
+        assertEquals("El puntaje total debe ser 0", 0, res.getPuntajeTotal());
+    }
 }

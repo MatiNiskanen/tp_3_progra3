@@ -60,4 +60,16 @@ public class SolverHeuristicoTest {
         
         assertTrue("El equipo debe estar vacío porque el goloso se trancó y no pudo cumplir el cupo", resultado.isEmpty());
     }
+    
+    @Test
+    public void testHeuristicaConRequerimientosImposibles() {
+        personasPrueba.add(new Persona("Juan", "Líder de proyecto", 5));
+        
+        reqPrueba.put("Arquitecto", 1);
+        
+        SolverHeuristico solver = new SolverHeuristico(personasPrueba, reqPrueba);
+        ResultadoSolver res = solver.resolver();
+        
+        assertTrue("La heurística debe abortar y retornar vacío si no puede cumplir la firma de requerimientos", res.getEquipoIdeal().isEmpty());
+    }
 }
